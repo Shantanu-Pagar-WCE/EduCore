@@ -1669,18 +1669,31 @@ function showMemoryData(type) {
     /* =====================================================
        DISPLAY MEMORY DATA
 
-       Only non-zero locations are displayed.
+       FRAM and SRAM keep the original behaviour: only
+       non-zero locations, scanned across the full 256-byte
+       range.
+
+       FLASH is register-backed (R0-R7 from Firebase2), so
+       ALL 8 registers are always shown, including 0x00
+       values, instead of hiding zeroed-out registers.
        ===================================================== */
+
+    const isFlashView =
+        (type === "FLASH");
+
+    const scanLength =
+        isFlashView ? 8 : selectedMemory.length;
 
     let hasData = false;
 
 
     for (
-        let address = 0; address < selectedMemory.length; address++
+        let address = 0; address < scanLength; address++
     ) {
 
 
         if (
+            isFlashView ||
             selectedMemory[address] !== 0
         ) {
 
