@@ -1,1 +1,799 @@
+@import url('https://fonts.googleapis.com/css2?family=Bree+Serif&family=Caveat:wght@400;700&family=Lobster&family=Monoton&family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Playfair+Display+SC:ital,wght@0,400;0,700;1,700&family=Playfair+Display:ital,wght@0,400;0,700;1,700&family=Roboto:ital,wght@0,400;0,700;1,400;1,700&family=Source+Sans+Pro:ital,wght@0,400;0,700;1,700&family=Work+Sans:ital,wght@0,400;0,700;1,700&display=swap');
 
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #ffffff;
+    color: #111111;
+    min-height: 100vh;
+}
+
+
+/* ---------- HEADER ---------- */
+
+.header {
+    height: 120px;
+    padding: 20px 45px;
+    border-bottom: 1px solid #e5e5e5;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+
+/* EduCore E logo */
+.logo-chip {
+    width: 68px;
+    height: 68px;
+
+    border: 4px solid #111111;
+    border-radius: 12px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    position: relative;
+    background: #ffffff;
+}
+
+/* E inside the chip */
+.logo-chip span {
+    width: 42px;
+    height: 42px;
+
+    border: 3px solid #111111;
+    border-radius: 5px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 27px;
+    font-weight: bold;
+}
+
+
+/* Small chip pins around the logo */
+.logo-chip::before,
+.logo-chip::after {
+    content: "";
+    position: absolute;
+    left: 9px;
+    right: 9px;
+    height: 4px;
+
+    background: repeating-linear-gradient(to right,
+            #111111 0,
+            #111111 4px,
+            transparent 4px,
+            transparent 9px);
+}
+
+.logo-chip::before {
+    top: -9px;
+}
+
+.logo-chip::after {
+    bottom: -9px;
+}
+
+
+.brand h1 {
+    font-size: 32px;
+    letter-spacing: -1px;
+}
+
+.brand p {
+    margin-top: 4px;
+    color: #777777;
+    font-size: 15px;
+}
+
+
+/* ---------- USER ---------- */
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    font-weight: 600;
+}
+
+.user-icon {
+    width: 42px;
+    height: 42px;
+
+    border: 1px solid #d7d7d7;
+    border-radius: 50%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 17px;
+}
+
+
+/* ---------- MAIN LAYOUT ---------- */
+
+.main-container {
+    width: 96%;
+    max-width: 1450px;
+    margin: 28px auto;
+
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(300px, 1fr);
+    gap: 24px;
+}
+
+.left-section {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+
+/* ---------- CARD ---------- */
+
+.card {
+    background: #ffffff;
+    border: 1px solid #e4e4e4;
+    border-radius: 12px;
+
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+}
+
+
+/* ---------- SECTION TITLE ---------- */
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.section-title h2 {
+    font-size: 20px;
+    letter-spacing: 0.3px;
+}
+
+.title-icon {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+
+/* ---------- CODE EDITOR ---------- */
+
+.editor-card {
+    padding: 24px;
+}
+
+.editor-card textarea {
+    width: 100%;
+    height: 330px;
+
+    margin-top: 18px;
+    padding: 22px;
+
+    border: 1px solid #dddddd;
+    border-radius: 9px;
+
+    resize: vertical;
+
+    background: #ffffff;
+    color: #111111;
+
+    font-family: "Courier New", monospace;
+    font-size: 17px;
+    line-height: 1.65;
+
+    outline: none;
+}
+
+.editor-card textarea:focus {
+    border-color: #111111;
+}
+
+
+/* ---------- ACTION BUTTONS ---------- */
+
+.action-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+
+    margin-top: 18px;
+}
+
+.action-btn {
+    height: 64px;
+
+    border: 1px solid #cccccc;
+    border-radius: 9px;
+
+    background: #ffffff;
+
+    font-size: 17px;
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition: 0.2s ease;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+
+/* Button hover colors */
+.compile-btn:hover {
+    border-color: #2463d4;
+    color: #2463d4;
+}
+
+.run-btn:hover {
+    border-color: #16833b;
+    color: #16833b;
+}
+
+.show-btn:hover {
+    border-color: #6b27b8;
+    color: #6b27b8;
+}
+
+.help-btn:hover {
+    border-color: #e36a00;
+    color: #e36a00;
+}
+
+
+/* ---------- OUTPUT ---------- */
+
+.output-card {
+    padding: 22px 24px;
+    min-height: 280px;
+}
+
+.output-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.clear-btn {
+    padding: 9px 17px;
+
+    background: #ffffff;
+    border: 1px solid #d6d6d6;
+    border-radius: 7px;
+
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.clear-btn:hover {
+    color: red;
+    border-color: red;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+#output {
+    margin-top: 14px;
+
+    min-height: 190px;
+    padding: 18px;
+
+    border: 1px solid #e1e1e1;
+    border-radius: 8px;
+
+    background: #ffffff;
+
+    color: #087d27;
+
+    font-family: "Courier New", monospace;
+    font-size: 16px;
+    line-height: 1.6;
+
+    white-space: pre-wrap;
+}
+
+
+/* ---------- HELP PANEL ---------- */
+
+.help-card {
+    padding: 25px;
+    align-self: start;
+}
+
+.help-card h3 {
+    margin-top: 25px;
+    margin-bottom: 12px;
+    font-size: 18px;
+}
+
+.help-card p {
+    color: #333333;
+    line-height: 1.7;
+    font-size: 16px;
+}
+
+.help-card ul {
+    padding-left: 20px;
+    line-height: 2;
+    color: #333333;
+}
+
+.help-card hr {
+    border: none;
+    border-top: 1px solid #e5e5e5;
+    margin: 24px 0;
+}
+
+
+/* Documentation button */
+.documentation-btn {
+    width: 100%;
+    height: 52px;
+
+    border: 1px solid #cccccc;
+    border-radius: 8px;
+
+    background: #ffffff;
+
+    font-size: 15px;
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+.documentation-btn:hover {
+    background: #f5f5f5;
+}
+
+
+/* ---------- FOOTER ---------- */
+
+footer {
+    border-top: 1px solid #e5e5e5;
+
+    text-align: center;
+    padding: 22px;
+
+    color: #777777;
+    font-size: 14px;
+}
+
+
+/* ---------- RESPONSIVE DESIGN ---------- */
+
+@media (max-width: 900px) {
+
+    .main-container {
+        grid-template-columns: 1fr;
+    }
+
+    .help-card {
+        order: 2;
+    }
+
+    .action-buttons {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+
+    .header {
+        height: auto;
+        padding: 18px;
+    }
+
+    .brand h1 {
+        font-size: 25px;
+    }
+
+    .logo-chip {
+        width: 52px;
+        height: 52px;
+    }
+
+    .logo-chip span {
+        width: 32px;
+        height: 32px;
+        font-size: 21px;
+    }
+
+    .user-profile span {
+        display: none;
+    }
+
+    .main-container {
+        width: 94%;
+        margin: 18px auto;
+    }
+
+    .editor-card,
+    .output-card,
+    .help-card {
+        padding: 16px;
+    }
+
+    .editor-card textarea {
+        height: 270px;
+        font-size: 14px;
+    }
+
+    .action-buttons {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .action-btn {
+        font-size: 14px;
+    }
+}
+
+/* =========================================================
+   EDUCORE MEMORY POPUP
+   FRAM / SRAM / FLASH
+   ========================================================= */
+
+
+/* ---------- POPUP BACKGROUND ---------- */
+
+.modal {
+
+    display: none;
+
+    position: fixed;
+
+    z-index: 1000;
+
+    left: 0;
+    top: 0;
+
+    width: 100%;
+    height: 100%;
+
+    background: rgba(0, 0, 0, 0.45);
+
+    align-items: center;
+    justify-content: center;
+
+    backdrop-filter: blur(3px);
+}
+
+
+/* =========================================================
+   MEMORY SELECTION POPUP
+   ========================================================= */
+
+.memory-select-box {
+
+    width: 480px;
+    max-width: 90%;
+
+    background: #ffffff;
+
+    border: 1px solid #e4e4e4;
+
+    border-radius: 12px;
+
+    padding: 30px;
+
+    position: relative;
+
+    text-align: center;
+
+    box-shadow:
+        0 10px 35px rgba(0, 0, 0, 0.18);
+}
+
+
+.memory-select-box h2 {
+
+    font-size: 22px;
+
+    margin-bottom: 8px;
+}
+
+
+.memory-select-box p {
+
+    color: #777777;
+
+    font-size: 15px;
+
+    margin-bottom: 25px;
+}
+
+
+/* ---------- CLOSE BUTTON ---------- */
+
+.close-btn {
+
+    position: absolute;
+
+    right: 15px;
+    top: 12px;
+
+    width: 32px;
+    height: 32px;
+
+    border: none;
+
+    background: transparent;
+
+    color: #555555;
+
+    font-size: 26px;
+
+    cursor: pointer;
+}
+
+
+.close-btn:hover {
+
+    color: #111111;
+}
+
+
+/* =========================================================
+   FRAM / SRAM / FLASH BUTTONS
+   ========================================================= */
+
+.memory-options {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 14px;
+}
+
+
+.memory-option {
+
+    height: 75px;
+
+    border: 1px solid #cccccc;
+
+    border-radius: 9px;
+
+    background: #ffffff;
+
+    font-size: 16px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition: 0.2s ease;
+}
+
+
+.memory-option:hover {
+
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+
+/* FRAM */
+
+.memory-option.fram:hover {
+
+    border-color: #2463d4;
+
+    color: #2463d4;
+}
+
+
+/* SRAM */
+
+.memory-option.sram:hover {
+
+    border-color: #16833b;
+
+    color: #16833b;
+}
+
+
+/* FLASH */
+
+.memory-option.flash:hover {
+
+    border-color: #6b27b8;
+
+    color: #6b27b8;
+}
+
+
+/* =========================================================
+   MEMORY DATA POPUP
+   ========================================================= */
+
+.memory-data-box {
+
+    width: 650px;
+
+    max-width: 90%;
+
+    max-height: 80vh;
+
+    background: #ffffff;
+
+    border: 1px solid #e4e4e4;
+
+    border-radius: 12px;
+
+    padding: 28px;
+
+    position: relative;
+
+    box-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.20);
+}
+
+
+.memory-data-box h2 {
+
+    font-size: 22px;
+
+    margin-bottom: 10px;
+}
+
+
+/* =========================================================
+   MEMORY TYPE
+   ========================================================= */
+
+.memory-info {
+
+    margin-bottom: 18px;
+}
+
+
+#memoryType {
+
+    display: inline-block;
+
+    padding: 6px 12px;
+
+    border: 1px solid #dddddd;
+
+    border-radius: 20px;
+
+    color: #666666;
+
+    background: #fafafa;
+
+    font-size: 13px;
+
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   MEMORY TABLE
+   ========================================================= */
+
+.memory-table-container {
+
+    max-height: 430px;
+
+    overflow-y: auto;
+
+    border: 1px solid #e1e1e1;
+
+    border-radius: 8px;
+}
+
+
+.memory-table-container table {
+
+    width: 100%;
+
+    border-collapse: collapse;
+
+    font-family:
+        "Courier New",
+        monospace;
+
+    font-size: 15px;
+}
+
+
+.memory-table-container th {
+
+    position: sticky;
+
+    top: 0;
+
+    background: #f5f5f5;
+
+    padding: 13px;
+
+    text-align: left;
+
+    border-bottom:
+        1px solid #dddddd;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 14px;
+}
+
+
+.memory-table-container td {
+
+    padding: 11px 13px;
+
+    border-bottom:
+        1px solid #eeeeee;
+}
+
+
+.memory-table-container tr:hover {
+
+    background: #fafafa;
+}
+
+
+/* =========================================================
+   RESPONSIVE MEMORY POPUP
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .memory-select-box {
+
+        width: 90%;
+
+        padding: 22px;
+    }
+
+
+    .memory-options {
+
+        grid-template-columns: 1fr;
+    }
+
+
+    .memory-data-box {
+
+        width: 92%;
+
+        padding: 20px;
+    }
+
+
+    .memory-table-container {
+
+        max-height: 350px;
+    }
+
+}
