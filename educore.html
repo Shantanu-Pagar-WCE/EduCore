@@ -1,1 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduCore - Assembly Code</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header class="header">
+        <div class="brand">
+            <div class="logo-chip">
+                <span>E</span>
+            </div>
+
+            <div>
+                <h1>EduCore</h1>
+                <p>Learn • Code • Execute</p>
+            </div>
+        </div>
+        <div class="user-profile">
+            <div class="user-icon">●</div>
+            <span>User</span>
+        </div>
+    </header>
+    <main class="main-container">
+        <section class="left-section">
+            <div class="card editor-card">
+                <div class="section-title">
+                    <span class="title-icon">&lt;/&gt;</span>
+                    <h2>ASSEMBLY CODE</h2>
+                </div>
+                <textarea id="codeEditor" spellcheck="false">; Sample Assembly Program
+MOV R1, #10
+MOV R2, #20
+ADD R3, R1, R2
+SUB R4, R2, R1
+MOV R5, #0
+END</textarea>
+                <div class="action-buttons">
+                    <button id="compileBtn" class="action-btn compile-btn">
+                        ⚙ COMPILE
+                    </button>
+                    <button id="runBtn" class="action-btn run-btn">
+                        ▶ RUN
+                    </button>
+                    <button id="showBtn" class="action-btn show-btn">
+                        ◉ SHOW
+                    </button>
+                    <button id="helpBtn" class="action-btn help-btn">
+                        ? HELP
+                    </button>
+                </div>
+            </div>
+
+            <div class="card output-card">
+                <div class="output-header">
+                    <div class="section-title">
+                        <span class="title-icon">›_</span>
+                        <h2>TERMINAL</h2>
+                    </div>
+                    <button id="clearBtn" class="clear-btn">🗑 CLEAR</button>
+                </div>
+                <pre id="output">Ready. Write your Assembly program and click COMPILE.</pre>
+            </div>
+
+        </section>
+        <aside class="card help-card">
+            <div class="section-title">
+                <span class="title-icon">?</span>
+                <h2>HELP</h2>
+            </div>
+            <h3>Assembly Language</h3>
+            <p>
+                Write your code in the editor and use the buttons below
+                to compile, run and view the output.
+            </p>
+            <hr>
+            <h3>Instructions</h3>
+            <ul>
+                <li><strong>MOV</strong> - Move data</li>
+                <li><strong>ADD</strong> - Addition</li>
+                <li><strong>SUB</strong> - Subtraction</li>
+                <li><strong>LDR</strong> - Load Data</li>
+                <li><strong>STR</strong> - Store Data</li>
+                <li><strong>END</strong> - End of Program</li>
+            </ul>
+            <hr>
+            <h3>Need more help?</h3>
+            <button id="documentationBtn" class="documentation-btn">
+                <a href="https://drive.google.com/file/d/1Laq4SzSYXy0X4Q9ossj6h290ZUhecVY6/view?usp=drivesdk">View Documentation</a>
+            </button>
+        </aside>
+    </main>
+    <!--Memory Pop up -->
+    <div id="memorySelectModal" class="modal">
+        <div class="memory-select-box">
+            <button id="closeMemorySelect" class="close-btn">×</button>
+            <h2>SELECT MEMORY</h2>
+            <p>
+                Select the memory you want to view.
+            </p>
+            <div class="memory-options">
+                <button id="framBtn" class="memory-option fram">FRAM</button>
+                <button id="sramBtn" class="memory-option sram">SRAM</button>
+                <button id="flashBtn" class="memory-option flash">FLASH</button>
+            </div>
+        </div>
+    </div>
+    <!-- Memory pop up volatile and all -->
+    <div id="memoryDataModal" class="modal">
+        <div class="memory-data-box">
+
+            <button id="closeMemoryData" class="close-btn">×</button>
+            <h2 id="memoryTitle">FLASH MEMORY DATA</h2>
+            <div class="memory-info">
+                <span id="memoryType">Non-Volatile Memory</span>
+            </div>
+            <div class="memory-table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ADDRESS</th>
+                            <th>DATA</th>
+                        </tr>
+                    </thead>
+                    <tbody id="memoryTableBody">
+                        <!-- Js will add data here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <footer>© 2026 EduCore. All rights reserved.</footer>
+    <!-- Link to external JavaScript file -->
+    <script src="script.js"></script>
+</body>
+
+</html>
