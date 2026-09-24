@@ -30,11 +30,11 @@ const documentationBtn =
 
 
 /* =========================================================
-   1B. FIREBASE REALTIME DATABASE CONFIG
+   1B. FIREBASE REALTIME DATABASE CONFIG (WRITE)
    =========================================================
 
    Every time a program compiles successfully, the parsed
-   instructions are pushed to this Realtime Database under
+   instructions are pushed to THIS Realtime Database under
    the "programs" node, in the shape:
 
    programs
@@ -47,10 +47,54 @@ const documentationBtn =
 
    Plain REST calls (fetch) are used so no extra SDK script
    tag is required and nothing else on the page changes.
+
+   IMPORTANT: this is a DIFFERENT Firebase project than the
+   read-only one below (section 1C). The two are never
+   mixed - this one is write-only (compiled program out),
+   the other is read-only (ESP32 flash data in).
    ========================================================= */
 
 const FIREBASE_DB_URL =
     "https://eduseth-86c45-default-rtdb.firebaseio.com";
+
+
+/* =========================================================
+   1C. FIREBASE REALTIME DATABASE CONFIG (READ - ESP32)
+   =========================================================
+
+   Separate Firebase project used ONLY to read the data an
+   ESP32 has written into its Realtime Database. This is
+   the JS equivalent of:
+
+       firebase_url1 = "https://.../Flash.json"
+       response1 = requests.get(firebase_url1)
+       memory1 = response1.json()
+
+   This URL is completely independent of FIREBASE_DB_URL
+   above - it is never written to, and FIREBASE_DB_URL is
+   never read from. Keeping them separate keeps the
+   write-side (compile -> Firebase) and read-side
+   (Firebase -> FLASH view) architecture intact.
+
+   Firebase2's actual data shape is a "Flash" node keyed by
+   register name, e.g.:
+
+       Flash: {
+           R0: "#10",
+           R1: "#20",
+           ...
+           R7: "#0"
+       }
+
+   so the base URL below points at the database root, and
+   "/Flash.json" is appended at fetch time (section 23B) to
+   read that node specifically - not the whole database.
+   ========================================================= */
+
+const FIREBASE_READ_BASE_URL =
+    "https://educore2-23d3e-default-rtdb.firebaseio.com";
+
+const FIREBASE_READ_NODE = "Flash";
 
 
 /* =========================================================
@@ -79,7 +123,11 @@ let isExecuted = false;
    SRAM  -> Volatile
    FLASH -> Non-Volatile
 
-   These are currently simulated memories.
+   FRAM stays a local simulated memory. FLASH is now backed
+   by the ESP32's Firebase data (see section 23B); it still
+   starts out with the same demo values so the UI has
+   something sane to show before the first fetch completes
+   or if the fetch fails.
    ========================================================= */
 
 let framMemory = new Uint8Array(256);
@@ -133,9 +181,11 @@ function initializeAdditionalMemory() {
     framMemory[7] = 100;
 
     /*
-       Demo values for FLASH
-       These can later be connected
-       to your actual EduCore memory.
+       Demo/fallback values for FLASH.
+       These are overwritten as soon as the ESP32's data is
+       fetched from Firebase (see fetchFlashMemoryFromFirebase),
+       so the popup always has something to show even before
+       the first successful fetch.
     */
 
     flashMemory[0] = 10;
@@ -820,14 +870,16 @@ function buildFirebaseProgram(program) {
 
 
 /* =========================================================
-   15C. SYNC PROGRAM TO FIREBASE
+   15C. SYNC PROGRAM TO FIREBASE (WRITE)
    =========================================================
 
-   Fire-and-forget REST call to the Realtime Database.
-   Runs quietly in the background after a successful
-   compile and never blocks or changes existing
-   compile/run/show behaviour. Failures are only logged
-   to the console.
+   Fire-and-forget REST call to the WRITE-side Realtime
+   Database (FIREBASE_DB_URL). Runs quietly in the
+   background after a successful compile and never blocks
+   or changes existing compile/run/show behaviour. Failures
+   are only logged to the console.
+
+   This never touches FIREBASE_READ_BASE_URL / flashMemory.
    ========================================================= */
 
 function syncProgramToFirebase(program) {
@@ -926,7 +978,7 @@ function compileCode() {
     );
 
 
-    /* ---------- SYNC TO FIREBASE ---------- */
+    /* ---------- SYNC TO FIREBASE (WRITE SIDE ONLY) ---------- */
 
     syncProgramToFirebase(
         compiledProgram
@@ -1307,6 +1359,194 @@ function showResults() {
 
 
 /* =========================================================
+   23B. FETCH FLASH MEMORY FROM FIREBASE (READ - ESP32)
+   =========================================================
+
+   JS port of:
+
+       firebase_url1 = "https://.../.json"
+       response1 = requests.get(firebase_url1)
+       memory1 = response1.json()
+       print("Memory fetched from Firebase:")
+       print(memory1)
+
+   Uses FIREBASE_READ_BASE_URL only (never FIREBASE_DB_URL).
+   Returns a Promise so the caller can wait for the fetch
+   to finish before opening the FLASH popup.
+   ========================================================= */
+
+function fetchFlashMemoryFromFirebase() {
+
+    const firebaseUrl1 =
+        FIREBASE_READ_BASE_URL +
+        "/" +
+        FIREBASE_READ_NODE +
+        ".json";
+
+    return fetch(firebaseUrl1)
+        .then(function(response) {
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Firebase read failed with status " +
+                    response.status
+                );
+            }
+
+            return response.json();
+        })
+        .then(function(memory1) {
+
+            console.log(
+                "Memory fetched from Firebase:"
+            );
+
+            console.log(memory1);
+
+            applyFlashMemoryData(memory1);
+        })
+        .catch(function(error) {
+
+            console.error(
+                "EduCore: Firebase read error -",
+                error
+            );
+
+            // Keep whatever FLASH data was already loaded
+            // (demo values or a previous successful fetch)
+            // instead of blocking the popup from opening.
+        });
+}
+
+
+/* =========================================================
+   23C. PARSE A FIREBASE2 FLASH VALUE
+   =========================================================
+
+   Firebase2 stores each register's value in the same
+   immediate-value style as the assembler ("#10", "#0xFF"),
+   but it may also just be a plain number depending on what
+   the ESP32 wrote. This accepts either:
+
+       "#10"   -> 10
+       "#0xFF" -> 255
+       10      -> 10
+       "10"    -> 10
+
+   Returns null if the value can't be parsed, so the caller
+   can skip it instead of writing garbage into flashMemory.
+   ========================================================= */
+
+function parseFlashValue(rawValue) {
+
+    if (typeof rawValue === "number") {
+
+        return isNaN(rawValue) ?
+            null :
+            rawValue;
+    }
+
+    if (typeof rawValue !== "string") {
+
+        return null;
+    }
+
+    let value = rawValue.trim();
+
+    // Reuse the assembler's own "#10" / "#0xFF" parser
+    // whenever the value is written that way.
+    if (value.startsWith("#")) {
+
+        return parseImmediate(value);
+    }
+
+    if (/^0x[0-9a-f]+$/i.test(value)) {
+
+        return parseInt(value, 16);
+    }
+
+    if (/^\d+$/.test(value)) {
+
+        return parseInt(value, 10);
+    }
+
+    return null;
+}
+
+
+/* =========================================================
+   23D. APPLY FETCHED DATA TO FLASH MEMORY
+   =========================================================
+
+   Maps the object returned by Firebase2's "Flash" node onto
+   the local flashMemory Uint8Array. Firebase2's real shape
+   is register-keyed, not address-keyed:
+
+       {
+           R0: "#10",
+           R1: "#20",
+           ...
+           R7: "#0"
+       }
+
+   so "R0".."R7" are mapped to flashMemory[0]..flashMemory[7]
+   (the same register numbering used everywhere else in
+   EduCore). Any key that isn't R0-R7, or any value that
+   parseFlashValue() can't make sense of, is skipped rather
+   than throwing - a single bad ESP32 reading should never
+   break the FLASH view.
+   ========================================================= */
+
+function applyFlashMemoryData(memory1) {
+
+    if (
+        !memory1 ||
+        typeof memory1 !== "object"
+    ) {
+
+        return;
+    }
+
+    for (let key in memory1) {
+
+        if (
+            !memory1.hasOwnProperty(key)
+        ) {
+
+            continue;
+        }
+
+        let match =
+            key.trim().match(/^R([0-7])$/i);
+
+        if (!match) {
+
+            continue;
+        }
+
+        let address =
+            parseInt(match[1], 10);
+
+        let value =
+            parseFlashValue(memory1[key]);
+
+        if (
+            value === null ||
+            value < 0 ||
+            value > 255
+        ) {
+
+            continue;
+        }
+
+        flashMemory[address] =
+            to8Bit(value);
+    }
+}
+
+
+/* =========================================================
    24. SHOW SELECTED MEMORY DATA
    ========================================================= */
 
@@ -1363,7 +1603,7 @@ function showMemoryData(type) {
             "FLASH MEMORY DATA";
 
         typeText =
-            "Non-Volatile Memory";
+            "Non-Volatile Memory (ESP32 / Firebase)";
     } else {
 
         return;
@@ -1634,16 +1874,26 @@ document.addEventListener(
         }
 
 
-        /* ---------- FLASH ---------- */
+        /* ---------- FLASH ----------
+
+           FLASH is backed by the ESP32's Firebase data, so
+           it is fetched fresh (section 23B) right before
+           the popup opens. FRAM and SRAM are untouched and
+           still open instantly, exactly as before.
+        */
 
         if (
             event.target.id ===
             "flashBtn"
         ) {
 
-            showMemoryData(
-                "FLASH"
-            );
+            fetchFlashMemoryFromFirebase()
+                .then(function() {
+
+                    showMemoryData(
+                        "FLASH"
+                    );
+                });
         }
 
 
