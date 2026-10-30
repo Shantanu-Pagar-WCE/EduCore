@@ -5,6 +5,9 @@
    Supported Instructions:
    MOV, LDR, STR, ADD, SUB, END
 
+   Show memories (read from Firebase2):
+   EEPROM, FLASH
+
    Registers:
    R0 - R7
 
@@ -51,7 +54,7 @@ const documentationBtn =
    IMPORTANT: this is a DIFFERENT Firebase project than the
    read-only one below (section 1C). The two are never
    mixed - this one is write-only (compiled program out),
-   the other is read-only (ESP32 flash data in).
+   the other is read-only (ESP32 EEPROM / FLASH data in).
    ========================================================= */
 
 const FIREBASE_DB_URL =
@@ -74,27 +77,27 @@ const FIREBASE_DB_URL =
    above - it is never written to, and FIREBASE_DB_URL is
    never read from. Keeping them separate keeps the
    write-side (compile -> Firebase) and read-side
-   (Firebase -> FLASH view) architecture intact.
+   (Firebase -> SHOW popup) architecture intact.
 
-   Firebase2's actual data shape is a "Flash" node keyed by
-   register name, e.g.:
+   Firebase2 holds one node per memory, each keyed by
+   register name:
 
-       Flash: {
-           R0: "#10",
-           R1: "#20",
-           ...
-           R7: "#0"
-       }
+       Flash:  { R0: "#10", R1: "#20", ... R7: "#0" }
+       EEPROM: { R0: "#10", R1: "#20", ... R7: "#0" }
 
-   so the base URL below points at the database root, and
-   "/Flash.json" is appended at fetch time (section 23B) to
-   read that node specifically - not the whole database.
+   FIREBASE_READ_NODES maps each memory shown in the SHOW
+   popup to its node name in Firebase2. Node names are
+   case-sensitive - change them here if your ESP32 writes
+   them differently.
    ========================================================= */
 
 const FIREBASE_READ_BASE_URL =
     "https://educore2-23d3e-default-rtdb.firebaseio.com";
 
-const FIREBASE_READ_NODE = "Flash";
+const FIREBASE_READ_NODES = {
+    EEPROM: "EEPROM",
+    FLASH: "Flash"
+};
 
 
 /* =========================================================
@@ -119,18 +122,19 @@ let isExecuted = false;
    3. ADDITIONAL MEMORY
    =========================================================
 
-   FRAM  -> Non-Volatile
-   SRAM  -> Volatile
-   FLASH -> Non-Volatile
+   EEPROM -> Non-Volatile
+   FLASH  -> Non-Volatile
 
-   FRAM stays a local simulated memory. FLASH is now backed
-   by the ESP32's Firebase data (see section 23B); it still
-   starts out with the same demo values so the UI has
-   something sane to show before the first fetch completes
-   or if the fetch fails.
+   Both are filled from Firebase2 every time they are
+   opened from the SHOW popup (see section 23B). They start
+   empty; nothing is simulated locally any more.
+
+   (The "memory" array above is still the working SRAM used
+   by LDR / STR while a program runs - it is just no longer
+   listed in the SHOW popup.)
    ========================================================= */
 
-let framMemory = new Uint8Array(256);
+let eepromMemory = new Uint8Array(256);
 let flashMemory = new Uint8Array(256);
 
 
@@ -156,46 +160,6 @@ function resetRegisters() {
 function resetMemory() {
 
     memory = new Uint8Array(256);
-}
-
-
-/* =========================================================
-   6. INITIALIZE FRAM / FLASH
-   ========================================================= */
-
-function initializeAdditionalMemory() {
-
-    /*
-       Demo values for FRAM
-       These can later be connected
-       to your actual EduCore memory.
-    */
-
-    framMemory[0] = 25;
-    framMemory[1] = 10;
-    framMemory[2] = 50;
-    framMemory[3] = 100;
-    framMemory[4] = 75;
-    framMemory[5] = 10;
-    framMemory[6] = 50;
-    framMemory[7] = 100;
-
-    /*
-       Demo/fallback values for FLASH.
-       These are overwritten as soon as the ESP32's data is
-       fetched from Firebase (see fetchFlashMemoryFromFirebase),
-       so the popup always has something to show even before
-       the first successful fetch.
-    */
-
-    flashMemory[0] = 10;
-    flashMemory[1] = 20;
-    flashMemory[2] = 30;
-    flashMemory[3] = 40;
-    flashMemory[4] = 50;
-    flashMemory[5] = 20;
-    flashMemory[6] = 30;
-    flashMemory[7] = 40;
 }
 
 
@@ -1319,8 +1283,7 @@ function runProgram() {
 
    SHOW button now opens:
 
-   FRAM
-   SRAM
+   EEPROM
    FLASH
    ========================================================= */
 
@@ -1359,28 +1322,50 @@ function showResults() {
 
 
 /* =========================================================
-   23B. FETCH FLASH MEMORY FROM FIREBASE (READ - ESP32)
+   23B. FETCH A MEMORY FROM FIREBASE (READ - ESP32)
    =========================================================
 
    JS port of:
 
-       firebase_url1 = "https://.../.json"
+       firebase_url1 = "https://.../Flash.json"
        response1 = requests.get(firebase_url1)
        memory1 = response1.json()
        print("Memory fetched from Firebase:")
        print(memory1)
 
-   Uses FIREBASE_READ_BASE_URL only (never FIREBASE_DB_URL).
-   Returns a Promise so the caller can wait for the fetch
-   to finish before opening the FLASH popup.
+   Works for both "EEPROM" and "FLASH". Uses
+   FIREBASE_READ_BASE_URL only (never FIREBASE_DB_URL).
+
+   Returns a Promise that always resolves:
+       null          -> fetched and applied successfully
+       "some text"   -> what went wrong (shown in the popup)
    ========================================================= */
 
-function fetchFlashMemoryFromFirebase() {
+function getMemoryArray(type) {
+
+    if (type === "EEPROM") {
+
+        return eepromMemory;
+    }
+
+    if (type === "FLASH") {
+
+        return flashMemory;
+    }
+
+    return null;
+}
+
+
+function fetchMemoryFromFirebase(type) {
+
+    const node =
+        FIREBASE_READ_NODES[type];
 
     const firebaseUrl1 =
         FIREBASE_READ_BASE_URL +
         "/" +
-        FIREBASE_READ_NODE +
+        node +
         ".json";
 
     return fetch(firebaseUrl1)
@@ -1399,29 +1384,41 @@ function fetchFlashMemoryFromFirebase() {
         .then(function(memory1) {
 
             console.log(
-                "Memory fetched from Firebase:"
+                "Memory fetched from Firebase (" +
+                type +
+                "):"
             );
 
             console.log(memory1);
 
-            applyFlashMemoryData(memory1);
+            if (memory1 === null) {
+
+                throw new Error(
+                    'No "' + node +
+                    '" node found in Firebase.'
+                );
+            }
+
+            applyMemoryData(type, memory1);
+
+            return null;
         })
         .catch(function(error) {
 
             console.error(
-                "EduCore: Firebase read error -",
+                "EduCore: Firebase read error (" +
+                type +
+                ") -",
                 error
             );
 
-            // Keep whatever FLASH data was already loaded
-            // (demo values or a previous successful fetch)
-            // instead of blocking the popup from opening.
+            return error.message;
         });
 }
 
 
 /* =========================================================
-   23C. PARSE A FIREBASE2 FLASH VALUE
+   23C. PARSE A FIREBASE2 MEMORY VALUE
    =========================================================
 
    Firebase2 stores each register's value in the same
@@ -1435,10 +1432,10 @@ function fetchFlashMemoryFromFirebase() {
        "10"    -> 10
 
    Returns null if the value can't be parsed, so the caller
-   can skip it instead of writing garbage into flashMemory.
+   can skip it instead of writing garbage into memory.
    ========================================================= */
 
-function parseFlashValue(rawValue) {
+function parseMemoryValue(rawValue) {
 
     if (typeof rawValue === "number") {
 
@@ -1476,12 +1473,11 @@ function parseFlashValue(rawValue) {
 
 
 /* =========================================================
-   23D. APPLY FETCHED DATA TO FLASH MEMORY
+   23D. APPLY FETCHED DATA TO EEPROM / FLASH
    =========================================================
 
-   Maps the object returned by Firebase2's "Flash" node onto
-   the local flashMemory Uint8Array. Firebase2's real shape
-   is register-keyed, not address-keyed:
+   Maps the object returned by a Firebase2 node onto the
+   matching Uint8Array. The shape is register-keyed:
 
        {
            R0: "#10",
@@ -1490,23 +1486,29 @@ function parseFlashValue(rawValue) {
            R7: "#0"
        }
 
-   so "R0".."R7" are mapped to flashMemory[0]..flashMemory[7]
-   (the same register numbering used everywhere else in
-   EduCore). Any key that isn't R0-R7, or any value that
-   parseFlashValue() can't make sense of, is skipped rather
-   than throwing - a single bad ESP32 reading should never
-   break the FLASH view.
+   so "R0".."R7" are mapped to index 0..7 of the array.
+   The array is cleared first so values from an earlier
+   fetch never linger. Any key that isn't R0-R7, or any
+   value parseMemoryValue() can't make sense of, is skipped
+   rather than throwing - a single bad ESP32 reading should
+   never break the popup.
    ========================================================= */
 
-function applyFlashMemoryData(memory1) {
+function applyMemoryData(type, memory1) {
+
+    const target =
+        getMemoryArray(type);
 
     if (
+        !target ||
         !memory1 ||
         typeof memory1 !== "object"
     ) {
 
         return;
     }
+
+    target.fill(0);
 
     for (let key in memory1) {
 
@@ -1529,7 +1531,7 @@ function applyFlashMemoryData(memory1) {
             parseInt(match[1], 10);
 
         let value =
-            parseFlashValue(memory1[key]);
+            parseMemoryValue(memory1[key]);
 
         if (
             value === null ||
@@ -1540,7 +1542,7 @@ function applyFlashMemoryData(memory1) {
             continue;
         }
 
-        flashMemory[address] =
+        target[address] =
             to8Bit(value);
     }
 }
@@ -1548,9 +1550,15 @@ function applyFlashMemoryData(memory1) {
 
 /* =========================================================
    24. SHOW SELECTED MEMORY DATA
+   =========================================================
+
+   type         -> "EEPROM" or "FLASH"
+   errorMessage -> optional; when given, the popup opens
+                   with that message instead of the table
+                   (used when the Firebase read failed).
    ========================================================= */
 
-function showMemoryData(type) {
+function showMemoryData(type, errorMessage) {
 
     let selectedMemory;
 
@@ -1559,37 +1567,18 @@ function showMemoryData(type) {
     let typeText;
 
 
-    /* ---------- FRAM ---------- */
+    /* ---------- EEPROM ---------- */
 
-    if (type === "FRAM") {
-
-        selectedMemory =
-            framMemory;
-
-        title =
-            "FRAM MEMORY DATA";
-
-        typeText =
-            "Non-Volatile Memory";
-    }
-
-
-    /* ---------- SRAM ---------- */
-    else if (type === "SRAM") {
-
-        /*
-           Existing "memory" variable
-           is used as SRAM.
-        */
+    if (type === "EEPROM") {
 
         selectedMemory =
-            memory;
+            eepromMemory;
 
         title =
-            "SRAM MEMORY DATA";
+            "EEPROM MEMORY DATA";
 
         typeText =
-            "Volatile Memory";
+            "Non-Volatile Memory (ESP32 / Firebase)";
     }
 
 
@@ -1669,36 +1658,53 @@ function showMemoryData(type) {
     /* =====================================================
        DISPLAY MEMORY DATA
 
-       FRAM and SRAM keep the original behaviour: only
-       non-zero locations, scanned across the full 256-byte
-       range.
-
-       FLASH is register-backed (R0-R7 from Firebase2), so
-       ALL 8 registers are always shown, including 0x00
-       values, instead of hiding zeroed-out registers.
+       EEPROM and FLASH are both register-backed (R0-R7 from
+       Firebase2), so ALL 8 registers are always shown,
+       including 0x00 values.
        ===================================================== */
 
-    const isFlashView =
-        (type === "FLASH");
+    if (errorMessage) {
 
-    const scanLength =
-        isFlashView ? 8 : selectedMemory.length;
+        /* ---------- FIREBASE READ FAILED ---------- */
 
-    let hasData = false;
+        const row =
+            document.createElement(
+                "tr"
+            );
 
+        const cell =
+            document.createElement(
+                "td"
+            );
 
-    for (
-        let address = 0; address < scanLength; address++
-    ) {
+        cell.colSpan = 2;
 
+        cell.textContent =
+            "Could not read " + type +
+            " data.\n" + errorMessage;
 
-        if (
-            isFlashView ||
-            selectedMemory[address] !== 0
+        cell.style.textAlign =
+            "center";
+
+        cell.style.color =
+            "#c62828";
+
+        cell.style.whiteSpace =
+            "pre-wrap";
+
+        row.appendChild(
+            cell
+        );
+
+        memoryTableBody.appendChild(
+            row
+        );
+
+    } else {
+
+        for (
+            let address = 0; address < 8; address++
         ) {
-
-            hasData = true;
-
 
             const row =
                 document.createElement(
@@ -1740,46 +1746,6 @@ function showMemoryData(type) {
                 row
             );
         }
-    }
-
-
-    /* =====================================================
-       IF MEMORY IS EMPTY
-       ===================================================== */
-
-    if (!hasData) {
-
-        const row =
-            document.createElement(
-                "tr"
-            );
-
-
-        const cell =
-            document.createElement(
-                "td"
-            );
-
-
-        cell.colSpan = 2;
-
-
-        cell.textContent =
-            "No data stored in memory.";
-
-
-        cell.style.textAlign =
-            "center";
-
-
-        row.appendChild(
-            cell
-        );
-
-
-        memoryTableBody.appendChild(
-            row
-        );
     }
 
 
@@ -1854,59 +1820,54 @@ function closeMemoryData() {
 
 /* =========================================================
    27. MEMORY BUTTON EVENTS
+   =========================================================
+
+   EEPROM and FLASH are both backed by the ESP32's Firebase
+   data, so each is fetched fresh (section 23B) right before
+   its popup opens.
    ========================================================= */
+
+function openMemoryFromFirebase(type) {
+
+    fetchMemoryFromFirebase(type)
+        .then(function(errorMessage) {
+
+            showMemoryData(
+                type,
+                errorMessage
+            );
+        });
+}
+
 
 document.addEventListener(
     "click",
     function(event) {
 
 
-        /* ---------- FRAM ---------- */
+        /* ---------- EEPROM ---------- */
 
         if (
             event.target.id ===
-            "framBtn"
+            "eepromBtn"
         ) {
 
-            showMemoryData(
-                "FRAM"
+            openMemoryFromFirebase(
+                "EEPROM"
             );
         }
 
 
-        /* ---------- SRAM ---------- */
-
-        if (
-            event.target.id ===
-            "sramBtn"
-        ) {
-
-            showMemoryData(
-                "SRAM"
-            );
-        }
-
-
-        /* ---------- FLASH ----------
-
-           FLASH is backed by the ESP32's Firebase data, so
-           it is fetched fresh (section 23B) right before
-           the popup opens. FRAM and SRAM are untouched and
-           still open instantly, exactly as before.
-        */
+        /* ---------- FLASH ---------- */
 
         if (
             event.target.id ===
             "flashBtn"
         ) {
 
-            fetchFlashMemoryFromFirebase()
-                .then(function() {
-
-                    showMemoryData(
-                        "FLASH"
-                    );
-                });
+            openMemoryFromFirebase(
+                "FLASH"
+            );
         }
 
 
@@ -2131,5 +2092,3 @@ codeEditor.addEventListener(
    ========================================================= */
 
 resetCPU();
-
-initializeAdditionalMemory();
