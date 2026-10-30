@@ -460,7 +460,7 @@ footer {
 
 /* =========================================================
    EDUCORE MEMORY POPUP
-   FRAM / SRAM / FLASH
+   EEPROM / FLASH
    ========================================================= */
 
 
@@ -564,7 +564,7 @@ footer {
 
 
 /* =========================================================
-   FRAM / SRAM / FLASH BUTTONS
+   EEPROM / FLASH BUTTONS
    ========================================================= */
 
 .memory-options {
@@ -572,7 +572,7 @@ footer {
     display: grid;
 
     grid-template-columns:
-        repeat(3, 1fr);
+        repeat(2, 1fr);
 
     gap: 14px;
 }
@@ -607,23 +607,13 @@ footer {
 }
 
 
-/* FRAM */
+/* EEPROM */
 
-.memory-option.fram:hover {
+.memory-option.eeprom:hover {
 
     border-color: #2463d4;
 
     color: #2463d4;
-}
-
-
-/* SRAM */
-
-.memory-option.sram:hover {
-
-    border-color: #16833b;
-
-    color: #16833b;
 }
 
 
